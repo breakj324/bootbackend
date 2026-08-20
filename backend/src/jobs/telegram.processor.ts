@@ -300,14 +300,21 @@ export class TelegramProcessor extends WorkerHost {
         return;
       }
 
-      // ✅ Update the existing claim with the screenshot (created at ID submission step)
+      // ✅ Download screenshot from Telegram and save locally, then update claim
       if (meta.claimId) {
         try {
+          let savedScreenshotUrl: string | null = null;
+
+          // Download the photo from Telegram and save to /uploads/screenshots/
+          if (screenshotFileId) {
+            savedScreenshotUrl = await this.telegramService.downloadTelegramFile(screenshotFileId);
+          }
+
           await this.prisma.playerClaim.update({
             where: { id: meta.claimId },
-            data: { screenshotUrl: screenshotFileId || 'telegram_file_uploaded' },
+            data: { screenshotUrl: savedScreenshotUrl || 'telegram_file_uploaded' },
           });
-          this.logger.log(`Updated claim ${meta.claimId} with screenshot ${screenshotFileId}`);
+          this.logger.log(`Updated claim ${meta.claimId} with screenshot: ${savedScreenshotUrl}`);
         } catch (err) {
           this.logger.error(`Could not update claim screenshot: ${err.message}`);
         }

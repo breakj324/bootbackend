@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, CheckCircle, XCircle, ShieldCheck, Search, Filter, RefreshCw, AlertCircle } from 'lucide-react';
+import { Users, CheckCircle, XCircle, ShieldCheck, Search, Filter, RefreshCw, AlertCircle, ImageIcon, X } from 'lucide-react';
 import { api, PlayerClaimItem } from '@/lib/api';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export default function ClaimsPage() {
   const [claims, setClaims] = useState<PlayerClaimItem[]>([]);
@@ -11,6 +13,7 @@ export default function ClaimsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
@@ -70,6 +73,7 @@ export default function ClaimsPage() {
   };
 
   return (
+    <>
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
@@ -189,14 +193,40 @@ export default function ClaimsPage() {
                       </div>
                     </td>
                     <td>
-                      {claim.screenshotUrl && claim.screenshotUrl !== null ? (
+                      {claim.screenshotUrl && claim.screenshotUrl !== null && claim.screenshotUrl !== 'telegram_file_uploaded' ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                          <img
+                            src={`${API_URL}${claim.screenshotUrl}`}
+                            alt="Preuve"
+                            style={{
+                              width: '60px', height: '45px', objectFit: 'cover',
+                              borderRadius: '6px', border: '1px solid var(--border-color)',
+                              cursor: 'pointer', transition: 'transform 0.15s'
+                            }}
+                            onClick={() => setPreviewUrl(`${API_URL}${claim.screenshotUrl}`)}
+                            onMouseOver={e => (e.currentTarget.style.transform = 'scale(1.1)')}
+                            onMouseOut={e => (e.currentTarget.style.transform = 'scale(1)')}
+                          />
+                          <button
+                            onClick={() => setPreviewUrl(`${API_URL}${claim.screenshotUrl}`)}
+                            style={{
+                              fontSize: '0.72rem', padding: '0.2rem 0.5rem',
+                              background: 'rgba(99,102,241,0.15)', color: 'var(--accent-primary)',
+                              border: '1px solid rgba(99,102,241,0.3)', borderRadius: '4px',
+                              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem'
+                            }}
+                          >
+                            <ImageIcon size={11} /> Voir
+                          </button>
+                        </div>
+                      ) : claim.screenshotUrl === 'telegram_file_uploaded' ? (
                         <span style={{
                           display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
                           padding: '0.25rem 0.6rem', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 700,
-                          background: 'rgba(34,197,94,0.15)', color: '#4ade80',
-                          border: '1px solid rgba(34,197,94,0.3)'
+                          background: 'rgba(99,102,241,0.15)', color: 'var(--accent-primary)',
+                          border: '1px solid rgba(99,102,241,0.3)'
                         }}>
-                          ✓ Reçu
+                          📎 Sur Telegram
                         </span>
                       ) : (
                         <span style={{
@@ -247,5 +277,48 @@ export default function ClaimsPage() {
         )}
       </div>
     </div>
+
+    {/* Modal d'aperçu de screenshot */}
+    {previewUrl && (
+      <div
+        onClick={() => setPreviewUrl(null)}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.85)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(6px)',
+          cursor: 'zoom-out',
+        }}
+      >
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            position: 'relative', maxWidth: '90vw', maxHeight: '90vh',
+            borderRadius: '12px', overflow: 'hidden',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }}
+        >
+          <button
+            onClick={() => setPreviewUrl(null)}
+            style={{
+              position: 'absolute', top: '0.75rem', right: '0.75rem',
+              background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '50%',
+              width: '36px', height: '36px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 10,
+            }}
+          >
+            <X size={18} color="white" />
+          </button>
+          <img
+            src={previewUrl}
+            alt="Preuve joueur"
+            style={{ display: 'block', maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain' }}
+          />
+        </div>
+      </div>
+    )}
+    </>
   );
 }

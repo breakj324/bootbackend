@@ -201,4 +201,51 @@ export class TelegramService implements OnModuleInit {
       throw error;
     }
   }
+
+  /**
+   * Download a Telegram file (photo) by file_id and save it to /uploads/screenshots/
+   * Returns the relative URL path (e.g. /uploads/screenshots/filename.jpg) or null on failure
+   */
+  async downloadTelegramFile(fileId: string): Promise<string | null> {
+    try {
+      // Step 1: Get file path from Telegram
+      const res = await fetch(`${this.apiUrl}/getFile?file_id=${fileId}`);
+      const data = await res.json();
+
+      if (!data.ok || !data.result?.file_path) {
+        this.logger.error(`Telegram getFile failed: ${JSON.stringify(data)}`);
+        return null;
+      }
+
+      const filePath = data.result.file_path; // e.g. "photos/file_123.jpg"
+      const downloadUrl = `https://api.telegram.org/file/bot${this.botToken}/${filePath}`;
+
+      // Step 2: Download the file bytes
+      const fileRes = await fetch(downloadUrl);
+      if (!fileRes.ok) {
+        this.logger.error(`Failed to download Telegram file: ${fileRes.statusText}`);
+        return null;
+      }
+
+      const buffer = Buffer.from(await fileRes.arrayBuffer());
+
+      // Step 3: Save to /uploads/screenshots/
+      const ext = path.extname(filePath) || '.jpg';
+      const fileName = `screenshot_${fileId.slice(-12)}${ext}`;
+      const screenshotsDir = path.join(process.cwd(), 'uploads', 'screenshots');
+
+      if (!fs.existsSync(screenshotsDir)) {
+        fs.mkdirSync(screenshotsDir, { recursive: true });
+      }
+
+      const fullPath = path.join(screenshotsDir, fileName);
+      fs.writeFileSync(fullPath, buffer);
+
+      this.logger.log(`Screenshot saved: ${fullPath}`);
+      return `/uploads/screenshots/${fileName}`;
+    } catch (err) {
+      this.logger.error(`downloadTelegramFile error: ${err.message}`);
+      return null;
+    }
+  }
 }
