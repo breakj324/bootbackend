@@ -55,7 +55,7 @@ function ClaimScreenshotCell({
     );
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://bootbackend.onrender.com';
   let fullUrl = url;
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     const cleanPath = url.startsWith('/') ? url : `/${url}`;

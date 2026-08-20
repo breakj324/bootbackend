@@ -248,4 +248,20 @@ export class TelegramService implements OnModuleInit {
       return null;
     }
   }
+
+  /**
+   * Get direct Telegram file CDN URL for a file_id
+   */
+  async getTelegramFileUrl(fileId: string): Promise<string | null> {
+    try {
+      const res = await fetch(`${this.apiUrl}/getFile?file_id=${fileId}`);
+      const data = await res.json();
+      if (data.ok && data.result?.file_path) {
+        return `https://api.telegram.org/file/bot${this.botToken}/${data.result.file_path}`;
+      }
+    } catch (err) {
+      this.logger.error(`getTelegramFileUrl error: ${err.message}`);
+    }
+    return null;
+  }
 }

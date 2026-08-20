@@ -8,6 +8,8 @@ import { PromoCodesModule } from './promocodes/promocodes.module';
 import { OrdersModule } from './orders/orders.module';
 import { ClaimsModule } from './claims/claims.module';
 
+import { AppController } from './app.controller';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -42,7 +44,9 @@ import { ClaimsModule } from './claims/claims.module';
     OrdersModule,
     ClaimsModule,
   ],
+  controllers: [AppController],
   providers: [PrismaService],
   exports: [PrismaService],
 })
 export class AppModule {}
+
