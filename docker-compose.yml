@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Database Service
+  postgres:
+    image: postgres:15-alpine
+    container_name: boot-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: boot_dashboard
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - boot-network
+
+  # Cache and Queue Message Broker Service
+  redis:
+    image: redis:7-alpine
+    container_name: boot-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    networks:
+      - boot-network
+
+  # Database Admin Interface (Optional but helpful)
+  adminer:
+    image: adminer
+    container_name: boot-adminer
+    ports:
+      - "8080:8080"
+    networks:
+      - boot-network
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  boot-network:
+    driver: bridge

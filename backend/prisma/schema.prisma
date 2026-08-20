@@ -1,0 +1,85 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Affiliate Manager / Admin User
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Bookmaker Brand (e.g. Melbet, XParibet, 1xBet)
+model PromoCode {
+  id              String        @id @default(uuid())
+  code            String        @unique // e.g. "atlass12"
+  bookmaker       String        // e.g. "XParibet", "Melbet"
+  exampleImageUrl String?       // Specific tutorial/example screenshot for this promo code
+  isActive        Boolean       @default(true)
+  orders          Order[]
+  claims          PlayerClaim[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+// Distribution Campaign Order (Requesting N accounts/players)
+model Order {
+  id                    String        @id @default(uuid())
+  promoCodeId           String
+  promoCode             PromoCode     @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  targetAccounts        Int           // e.g. 20 accounts wanted
+  claimedCount          Int           @default(0) // actual claimed count
+  freeDepositConditions String        // Instructions: "Join channel, register with promo code..."
+  status                String        @default("ACTIVE") // PENDING, ACTIVE, COMPLETED, PAUSED
+  claims                PlayerClaim[]
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+}
+
+// Players who interacted with the Bot to claim free deposits
+model PlayerClaim {
+  id              String    @id @default(uuid())
+  telegramChatId  String
+  telegramUsername String?
+  telegramName    String?
+  promoCodeId     String
+  promoCode       PromoCode @relation(fields: [promoCodeId], references: [id])
+  orderId         String
+  order           Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  playerBookmakerId String?  // e.g. "ID: 4892019" submitted by player
+  screenshotUrl   String?   // optional proof image
+  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([telegramChatId, promoCodeId]) // Prevent same user from claiming the same promo code twice
+}
+
+// Telegram conversational step tracking
+model TelegramConversationState {
+  telegramChatId String    @id
+  step           String    @default("IDLE") // IDLE, AWAITING_PROMO_CODE, AWAITING_BOOKMAKER_ID, AWAITING_SCREENSHOT
+  currentOrderId String?
+  metadata       String?   // store dynamic state context (JSON serialized)
+  updatedAt      DateTime  @updatedAt
+}
+
+// JobLogs model to track BullMQ background processing
+model JobLog {
+  id        String   @id @default(uuid())
+  queueName String
+  jobName   String
+  status    String   // PENDING, SUCCESS, FAILED
+  payload   String?   // JSON serialized payload
+  error     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
