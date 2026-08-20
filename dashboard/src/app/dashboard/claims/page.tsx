@@ -4,7 +4,145 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Users, CheckCircle, XCircle, ShieldCheck, Search, Filter, RefreshCw, AlertCircle, ImageIcon, X } from 'lucide-react';
 import { api, PlayerClaimItem } from '@/lib/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+function ClaimScreenshotCell({
+  url,
+  onPreview,
+}: {
+  url?: string | null;
+  onPreview: (fullUrl: string) => void;
+}) {
+  const [hasError, setHasError] = useState(false);
+
+  if (!url) {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.3rem',
+          padding: '0.25rem 0.6rem',
+          borderRadius: '999px',
+          fontSize: '0.78rem',
+          fontWeight: 700,
+          background: 'rgba(251,146,60,0.15)',
+          color: '#fb923c',
+          border: '1px solid rgba(251,146,60,0.3)',
+        }}
+      >
+        ⚠ Manquant
+      </span>
+    );
+  }
+
+  if (url === 'telegram_file_uploaded' || url === 'simulated_screenshot') {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.3rem',
+          padding: '0.25rem 0.6rem',
+          borderRadius: '999px',
+          fontSize: '0.78rem',
+          fontWeight: 700,
+          background: 'rgba(99,102,241,0.15)',
+          color: '#818cf8',
+          border: '1px solid rgba(99,102,241,0.3)',
+        }}
+      >
+        ✓ Reçu (Telegram)
+      </span>
+    );
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  let fullUrl = url;
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    const cleanPath = url.startsWith('/') ? url : `/${url}`;
+    fullUrl = `${baseUrl}${cleanPath}`;
+  }
+
+  if (hasError) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem' }}>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.3rem',
+            padding: '0.25rem 0.6rem',
+            borderRadius: '999px',
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            background: 'rgba(34,197,94,0.15)',
+            color: '#4ade80',
+            border: '1px solid rgba(34,197,94,0.3)',
+          }}
+        >
+          ✓ Preuve reçue
+        </span>
+        <a
+          href={fullUrl}
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            fontSize: '0.72rem',
+            padding: '0.2rem 0.5rem',
+            background: 'rgba(99,102,241,0.15)',
+            color: 'var(--accent-primary)',
+            border: '1px solid rgba(99,102,241,0.3)',
+            borderRadius: '4px',
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.25rem',
+          }}
+        >
+          <ImageIcon size={11} /> Ouvrir
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+      <img
+        src={fullUrl}
+        alt="Preuve"
+        onError={() => setHasError(true)}
+        style={{
+          width: '60px',
+          height: '45px',
+          objectFit: 'cover',
+          borderRadius: '6px',
+          border: '1px solid var(--border-color)',
+          cursor: 'pointer',
+          transition: 'transform 0.15s',
+        }}
+        onClick={() => onPreview(fullUrl)}
+        onMouseOver={e => (e.currentTarget.style.transform = 'scale(1.1)')}
+        onMouseOut={e => (e.currentTarget.style.transform = 'scale(1)')}
+      />
+      <button
+        onClick={() => onPreview(fullUrl)}
+        style={{
+          fontSize: '0.72rem',
+          padding: '0.2rem 0.5rem',
+          background: 'rgba(99,102,241,0.15)',
+          color: 'var(--accent-primary)',
+          border: '1px solid rgba(99,102,241,0.3)',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.25rem',
+        }}
+      >
+        <ImageIcon size={11} /> Voir
+      </button>
+    </div>
+  );
+}
 
 export default function ClaimsPage() {
   const [claims, setClaims] = useState<PlayerClaimItem[]>([]);
@@ -193,51 +331,10 @@ export default function ClaimsPage() {
                       </div>
                     </td>
                     <td>
-                      {claim.screenshotUrl && claim.screenshotUrl !== null && claim.screenshotUrl !== 'telegram_file_uploaded' ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-                          <img
-                            src={`${API_URL}${claim.screenshotUrl}`}
-                            alt="Preuve"
-                            style={{
-                              width: '60px', height: '45px', objectFit: 'cover',
-                              borderRadius: '6px', border: '1px solid var(--border-color)',
-                              cursor: 'pointer', transition: 'transform 0.15s'
-                            }}
-                            onClick={() => setPreviewUrl(`${API_URL}${claim.screenshotUrl}`)}
-                            onMouseOver={e => (e.currentTarget.style.transform = 'scale(1.1)')}
-                            onMouseOut={e => (e.currentTarget.style.transform = 'scale(1)')}
-                          />
-                          <button
-                            onClick={() => setPreviewUrl(`${API_URL}${claim.screenshotUrl}`)}
-                            style={{
-                              fontSize: '0.72rem', padding: '0.2rem 0.5rem',
-                              background: 'rgba(99,102,241,0.15)', color: 'var(--accent-primary)',
-                              border: '1px solid rgba(99,102,241,0.3)', borderRadius: '4px',
-                              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem'
-                            }}
-                          >
-                            <ImageIcon size={11} /> Voir
-                          </button>
-                        </div>
-                      ) : claim.screenshotUrl === 'telegram_file_uploaded' ? (
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-                          padding: '0.25rem 0.6rem', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 700,
-                          background: 'rgba(99,102,241,0.15)', color: 'var(--accent-primary)',
-                          border: '1px solid rgba(99,102,241,0.3)'
-                        }}>
-                          📎 Sur Telegram
-                        </span>
-                      ) : (
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-                          padding: '0.25rem 0.6rem', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 700,
-                          background: 'rgba(251,146,60,0.15)', color: '#fb923c',
-                          border: '1px solid rgba(251,146,60,0.3)'
-                        }}>
-                          ⚠ Manquant
-                        </span>
-                      )}
+                      <ClaimScreenshotCell
+                        url={claim.screenshotUrl}
+                        onPreview={(fullUrl) => setPreviewUrl(fullUrl)}
+                      />
                     </td>
                     <td style={{ fontSize: '0.85rem' }}>{formatDate(claim.createdAt)}</td>
                     <td>
