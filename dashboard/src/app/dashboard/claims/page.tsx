@@ -163,6 +163,7 @@ export default function ClaimsPage() {
                   <th>ID Telegram</th>
                   <th>Code Promo</th>
                   <th>Bookmaker &amp; ID Soumis</th>
+                  <th>Screenshot</th>
                   <th>Date</th>
                   <th>Statut</th>
                   <th>Actions</th>
@@ -186,6 +187,27 @@ export default function ClaimsPage() {
                         <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{claim.promoCode?.bookmaker}</span>
                         <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>ID: {claim.playerBookmakerId || '—'}</span>
                       </div>
+                    </td>
+                    <td>
+                      {claim.screenshotUrl && claim.screenshotUrl !== null ? (
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                          padding: '0.25rem 0.6rem', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 700,
+                          background: 'rgba(34,197,94,0.15)', color: '#4ade80',
+                          border: '1px solid rgba(34,197,94,0.3)'
+                        }}>
+                          ✓ Reçu
+                        </span>
+                      ) : (
+                        <span style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                          padding: '0.25rem 0.6rem', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 700,
+                          background: 'rgba(251,146,60,0.15)', color: '#fb923c',
+                          border: '1px solid rgba(251,146,60,0.3)'
+                        }}>
+                          ⚠ Manquant
+                        </span>
+                      )}
                     </td>
                     <td style={{ fontSize: '0.85rem' }}>{formatDate(claim.createdAt)}</td>
                     <td>

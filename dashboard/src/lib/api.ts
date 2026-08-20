@@ -67,6 +67,7 @@ export interface PlayerClaimItem {
   promoCode: PromoCodeItem;
   order: CampaignOrder;
   playerBookmakerId?: string;
+  screenshotUrl?: string | null;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: string;
 }

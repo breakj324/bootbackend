@@ -188,12 +188,41 @@ export class TelegramProcessor extends WorkerHost {
         return;
       }
 
-      // Save ID in conversation metadata
+      // ✅ Create claim immediately in DB (without screenshot yet) so it appears in dashboard
+      const newClaim = await this.prisma.playerClaim.create({
+        data: {
+          telegramChatId: chatId,
+          telegramUsername: username,
+          telegramName: fullName,
+          promoCodeId: currentOrder.promoCodeId,
+          orderId: currentOrder.id,
+          playerBookmakerId: bookmakerAccountId,
+          screenshotUrl: null, // Will be updated when player sends screenshot
+          status: 'PENDING',
+        },
+      });
+
+      // Increment claimed count on campaign order
+      await this.prisma.order.update({
+        where: { id: currentOrder.id },
+        data: { claimedCount: { increment: 1 } },
+      });
+
+      // Check target accounts limit
+      if (currentOrder.claimedCount + 1 >= currentOrder.targetAccounts) {
+        await this.prisma.order.update({
+          where: { id: currentOrder.id },
+          data: { status: 'COMPLETED' },
+        });
+      }
+
+      // Save claimId + context in conversation metadata for screenshot update step
       await this.prisma.telegramConversationState.update({
         where: { telegramChatId: chatId },
         data: {
           step: 'AWAITING_SCREENSHOT',
           metadata: JSON.stringify({
+            claimId: newClaim.id,
             playerBookmakerId: bookmakerAccountId,
             orderId: currentOrder.id,
             promoCodeId: currentOrder.promoCodeId,
@@ -230,14 +259,6 @@ export class TelegramProcessor extends WorkerHost {
         await this.telegramService.sendMessage(chatId, caption);
       }
     } else if (convState.step === 'AWAITING_SCREENSHOT') {
-      if (!hasPhoto) {
-        await this.telegramService.sendMessage(
-          chatId,
-          `⚠️ <b>عافاك صيفط صورة (Screenshot) !</b>\n\nهاد الخطوة ضرورية بزاف باش نقدرو نتحققوا من الحساب ديالك ونرسلو ليك البونص. صيفط ليا سكرين شوت ديال التسجيل دابا من فضلك.`,
-        );
-        return;
-      }
-
       let meta: any = {};
       try {
         if (convState.metadata) {
@@ -270,34 +291,26 @@ export class TelegramProcessor extends WorkerHost {
         return;
       }
 
-      const playerBookmakerId = meta.playerBookmakerId || 'INCONNU';
+      if (!hasPhoto) {
+        // Player sent text instead of screenshot — remind them but claim already exists in DB
+        await this.telegramService.sendMessage(
+          chatId,
+          `⚠️ <b>عافاك صيفط صورة (Screenshot) !</b>\n\nهاد الخطوة ضرورية بزاف باش نقدرو نتحققوا من الحساب ديالك ونرسلو ليك البونص. صيفط ليا سكرين شوت ديال التسجيل دابا من فضلك.`,
+        );
+        return;
+      }
 
-      // Save claim in database with status PENDING
-      await this.prisma.playerClaim.create({
-        data: {
-          telegramChatId: chatId,
-          telegramUsername: username,
-          telegramName: fullName,
-          promoCodeId: order.promoCodeId,
-          orderId: order.id,
-          playerBookmakerId: playerBookmakerId,
-          screenshotUrl: screenshotFileId || 'telegram_file_uploaded',
-          status: 'PENDING',
-        },
-      });
-
-      // Increment claimed count on campaign order
-      await this.prisma.order.update({
-        where: { id: order.id },
-        data: { claimedCount: { increment: 1 } },
-      });
-
-      // Check target accounts limit
-      if (order.claimedCount + 1 >= order.targetAccounts) {
-        await this.prisma.order.update({
-          where: { id: order.id },
-          data: { status: 'COMPLETED' },
-        });
+      // ✅ Update the existing claim with the screenshot (created at ID submission step)
+      if (meta.claimId) {
+        try {
+          await this.prisma.playerClaim.update({
+            where: { id: meta.claimId },
+            data: { screenshotUrl: screenshotFileId || 'telegram_file_uploaded' },
+          });
+          this.logger.log(`Updated claim ${meta.claimId} with screenshot ${screenshotFileId}`);
+        } catch (err) {
+          this.logger.error(`Could not update claim screenshot: ${err.message}`);
+        }
       }
 
       // Reset step to IDLE
