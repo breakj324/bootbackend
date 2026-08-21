@@ -91,8 +91,8 @@ export class ClaimsController {
   }
 
   @Patch(':id/status')
-  async updateStatus(@Param('id') id: string, @Body() body: { status: 'APPROVED' | 'REJECTED' }) {
-    return this.claimsService.updateStatus(id, body.status);
+  async updateStatus(@Param('id') id: string, @Body() body: { status: 'APPROVED' | 'REJECTED'; reason?: string }) {
+    return this.claimsService.updateStatus(id, body.status, body.reason);
   }
 
   @Delete(':id')

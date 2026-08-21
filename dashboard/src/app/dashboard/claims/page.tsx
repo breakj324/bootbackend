@@ -166,6 +166,8 @@ export default function ClaimsPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [rejectModal, setRejectModal] = useState<{ claimId: string; playerName: string } | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
@@ -189,14 +191,25 @@ export default function ClaimsPage() {
     loadClaims();
   }, [loadClaims]);
 
-  const handleUpdateStatus = async (id: string, newStatus: 'APPROVED' | 'REJECTED') => {
+  const handleUpdateStatus = async (id: string, newStatus: 'APPROVED' | 'REJECTED', reason?: string) => {
     try {
-      const updated = await api.updateClaimStatus(id, newStatus);
+      const updated = await api.updateClaimStatus(id, newStatus, reason);
       setClaims(claims.map(c => c.id === id ? { ...c, status: updated.status } : c));
       showSuccess(`Demande ${newStatus === 'APPROVED' ? 'approuvée' : 'rejetée'} avec succès.`);
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la mise à jour du statut.');
     }
+  };
+
+  const openRejectModal = (claimId: string, playerName: string) => {
+    setRejectReason('');
+    setRejectModal({ claimId, playerName });
+  };
+
+  const confirmReject = async () => {
+    if (!rejectModal) return;
+    await handleUpdateStatus(rejectModal.claimId, 'REJECTED', rejectReason.trim() || undefined);
+    setRejectModal(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -384,8 +397,8 @@ export default function ClaimsPage() {
                           <button
                             className="btn-icon"
                             style={{ borderColor: 'rgba(239,68,68,0.3)' }}
-                            onClick={() => handleUpdateStatus(claim.id, 'REJECTED')}
-                            title="Rejeter (garde l'enregistrement)"
+                            onClick={() => openRejectModal(claim.id, claim.telegramName || claim.telegramUsername || claim.telegramChatId)}
+                            title="Rejeter avec un motif"
                           >
                             <XCircle size={15} color="var(--color-danger)" />
                           </button>
@@ -447,6 +460,84 @@ export default function ClaimsPage() {
             alt="Preuve joueur"
             style={{ display: 'block', maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain' }}
           />
+        </div>
+      </div>
+    )}
+
+    {/* Modal de rejet avec motif */}
+    {rejectModal && (
+      <div
+        onClick={() => setRejectModal(null)}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.75)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(6px)',
+        }}
+      >
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid rgba(239,68,68,0.35)',
+            borderRadius: '16px',
+            padding: '2rem',
+            width: '480px',
+            maxWidth: '92vw',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <XCircle size={22} color="#ef4444" />
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Rejeter la demande de <span style={{ color: '#ef4444' }}>{rejectModal.playerName}</span>
+            </h3>
+          </div>
+
+          <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+            Le joueur recevra un message Telegram avec le motif de rejet et un bouton pour réessayer.
+          </p>
+
+          <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.5rem' }}>
+            Motif de rejet (optionnel)
+          </label>
+          <textarea
+            value={rejectReason}
+            onChange={e => setRejectReason(e.target.value)}
+            placeholder="Ex: Le screenshot ne montre pas le code promo, l'ID bookmaker est invalide..."
+            rows={3}
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              borderRadius: '8px',
+              border: '1px solid rgba(239,68,68,0.3)',
+              background: 'var(--bg-primary)',
+              color: 'var(--text-primary)',
+              fontSize: '0.88rem',
+              resize: 'vertical',
+              marginBottom: '1.25rem',
+              outline: 'none',
+              boxSizing: 'border-box',
+            }}
+            autoFocus
+          />
+
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+            <button
+              className="btn-icon"
+              onClick={() => setRejectModal(null)}
+              style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+            >
+              Annuler
+            </button>
+            <button
+              className="btn-primary"
+              onClick={confirmReject}
+              style={{ padding: '0.5rem 1.2rem', fontSize: '0.85rem', width: 'auto', background: '#ef4444', borderColor: '#ef4444' }}
+            >
+              <XCircle size={14} /> Confirmer le rejet
+            </button>
+          </div>
         </div>
       </div>
     )}

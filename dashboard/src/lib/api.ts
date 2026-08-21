@@ -115,8 +115,8 @@ export const api = {
     playerBookmakerId: string;
     screenshotUrl?: string;
   }) => apiFetch<PlayerClaimItem>('/claims', { method: 'POST', data }),
-  updateClaimStatus: (id: string, status: 'APPROVED' | 'REJECTED') => 
-    apiFetch<PlayerClaimItem>(`/claims/${id}/status`, { method: 'PATCH', data: { status } }),
+  updateClaimStatus: (id: string, status: 'APPROVED' | 'REJECTED', reason?: string) => 
+    apiFetch<PlayerClaimItem>(`/claims/${id}/status`, { method: 'PATCH', data: { status, ...(reason ? { reason } : {}) } }),
   deleteClaim: (id: string) =>
     apiFetch(`/claims/${id}`, { method: 'DELETE' }),
 };

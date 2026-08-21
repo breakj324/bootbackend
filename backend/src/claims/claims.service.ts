@@ -62,7 +62,7 @@ export class ClaimsService {
     });
   }
 
-  async updateStatus(id: string, status: 'APPROVED' | 'REJECTED') {
+  async updateStatus(id: string, status: 'APPROVED' | 'REJECTED', reason?: string) {
     const claim = await this.prisma.playerClaim.findUnique({
       where: { id },
       include: { promoCode: true, order: true },
@@ -108,11 +108,16 @@ export class ClaimsService {
           ],
         ];
 
+        const reasonLine = reason
+          ? `\n\n📋 <b>سبب الرفض / Motif :</b>\n<i>${reason}</i>`
+          : '';
+
         await this.telegramService.sendMessage(
           claim.telegramChatId,
           `❌ <b>تم رفض الطلب ديالك / Demande non validée</b>\n\n` +
-          `للأسف، التحقق من الحساب ديالك فـ <b>${claim.promoCode.bookmaker}</b> (الكود برومو: <code>${claim.promoCode.code}</code>) ما تقبلش بسبب معلومات أو سكرين شوت غير صحيحة. ⚠️\n\n` +
-          `🔄 <b>تقدر تعاود تصاوب طلب جديد دابا !</b>\n` +
+          `للأسف، التحقق من الحساب ديالك فـ <b>${claim.promoCode.bookmaker}</b> (الكود برومو: <code>${claim.promoCode.code}</code>) ما تقبلش. ⚠️` +
+          reasonLine +
+          `\n\n🔄 <b>تقدر تعاود تصاوب طلب جديد دابا !</b>\n` +
           `تأكد بلي تسجلتي بالكود برومو الصحيح و صيفط لينا الأيدي و السكرين شوت الواضحة بالضغط على الزر أسفله :`,
           { inline_keyboard },
         );
