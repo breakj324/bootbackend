@@ -153,9 +153,12 @@ export class TelegramProcessor extends WorkerHost {
         return;
       }
 
-      // Check global uniqueness of Bookmaker Account ID
+      // Check global uniqueness of Bookmaker Account ID (excluding REJECTED claims)
       const existingIdClaim = await this.prisma.playerClaim.findFirst({
-        where: { playerBookmakerId: bookmakerAccountId },
+        where: {
+          playerBookmakerId: bookmakerAccountId,
+          status: { not: 'REJECTED' },
+        },
       });
 
       if (existingIdClaim) {
@@ -355,7 +358,10 @@ export class TelegramProcessor extends WorkerHost {
     });
 
     const userClaims = await this.prisma.playerClaim.findMany({
-      where: { telegramChatId: chatId },
+      where: {
+        telegramChatId: chatId,
+        status: { not: 'REJECTED' },
+      },
       select: { promoCodeId: true },
     });
     const claimedPromoCodeIds = new Set(userClaims.map(c => c.promoCodeId));
@@ -463,24 +469,31 @@ export class TelegramProcessor extends WorkerHost {
     });
 
     if (existingClaim) {
-      const statusMap = {
-        PENDING: 'قيد المراجعة ⏳',
-        APPROVED: 'مقبول ✅',
-        REJECTED: 'مرفوض ❌',
-      };
-      const statusAr = statusMap[existingClaim.status] || existingClaim.status;
-      const inline_keyboard = [
-        [
-          { text: '🎁 Voir d\'autres offres / عروض أخرى', callback_data: 'show_offers' },
-          { text: '📋 Mes demandes / طلباتي', callback_data: 'my_claims' },
-        ],
-      ];
-      await this.telegramService.sendMessage(
-        chatId,
-        `⚠️ <b>هاد العرض مستعمل ديجا!</b>\n\nأهلاً ${fullName}، راك ديجا شاركتي فهاد العرض ديال الكود برومو <code>${order.promoCode.code}</code> (${order.promoCode.bookmaker}).\n\n<i>حالة الطلب ديالك دابا هي:</i> <b>${statusAr}</b>.`,
-        { inline_keyboard },
-      );
-      return;
+      if (existingClaim.status === 'REJECTED') {
+        // Delete old rejected claim record so player can resubmit cleanly!
+        await this.prisma.playerClaim.delete({
+          where: { id: existingClaim.id },
+        });
+      } else {
+        const statusMap = {
+          PENDING: 'قيد المراجعة ⏳',
+          APPROVED: 'مقبول ✅',
+          REJECTED: 'مرفوض ❌',
+        };
+        const statusAr = statusMap[existingClaim.status] || existingClaim.status;
+        const inline_keyboard = [
+          [
+            { text: '🎁 Voir d\'autres offres / عروض أخرى', callback_data: 'show_offers' },
+            { text: '📋 Mes demandes / طلباتي', callback_data: 'my_claims' },
+          ],
+        ];
+        await this.telegramService.sendMessage(
+          chatId,
+          `⚠️ <b>هاد العرض مستعمل ديجا!</b>\n\nأهلاً ${fullName}، راك ديجا شاركتي فهاد العرض ديال الكود برومو <code>${order.promoCode.code}</code> (${order.promoCode.bookmaker}).\n\n<i>حالة الطلب ديالك دابا هي:</i> <b>${statusAr}</b>.`,
+          { inline_keyboard },
+        );
+        return;
+      }
     }
 
     // Set conversation step for this order

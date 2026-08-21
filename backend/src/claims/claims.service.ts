@@ -91,9 +91,30 @@ export class ClaimsService {
           `⚡️ <b>لا تضيع هاد الفرصة الذهبية! ادخل دابا للحساب ديالك، ابدأ اللعب فـ البلاصة، طلع الرصيد لـ 5000 DH وحضر راسك للسحب ديال غداً!</b> 🔥`,
         );
       } else {
+        // Decrement claimedCount on campaign order to free up quota
+        if (claim.order && claim.order.claimedCount > 0) {
+          await this.prisma.order.update({
+            where: { id: claim.orderId },
+            data: { claimedCount: { decrement: 1 } },
+          });
+        }
+
+        const inline_keyboard = [
+          [
+            { text: '🔄 إعادة محاولة التسجيل / Réessayer', callback_data: `select_order_${claim.orderId}` },
+          ],
+          [
+            { text: '🎁 Voir d\'autres offres / عرض عروض أخرى', callback_data: 'show_offers' },
+          ],
+        ];
+
         await this.telegramService.sendMessage(
           claim.telegramChatId,
-          `❌ <b>لم يتم قبول الطلب</b>\n\nللأسف، التحقق من الحساب ديالك فـ الكود برومو <code>${claim.promoCode.code}</code> ما تقبلش. عافاك تأكد بلي تبعتي جميع الشروط والصورة كانت واضحة.`,
+          `❌ <b>تم رفض الطلب ديالك / Demande non validée</b>\n\n` +
+          `للأسف، التحقق من الحساب ديالك فـ <b>${claim.promoCode.bookmaker}</b> (الكود برومو: <code>${claim.promoCode.code}</code>) ما تقبلش بسبب معلومات أو سكرين شوت غير صحيحة. ⚠️\n\n` +
+          `🔄 <b>تقدر تعاود تصاوب طلب جديد دابا !</b>\n` +
+          `تأكد بلي تسجلتي بالكود برومو الصحيح و صيفط لينا الأيدي و السكرين شوت الواضحة بالضغط على الزر أسفله :`,
+          { inline_keyboard },
         );
       }
     } catch (err) {
