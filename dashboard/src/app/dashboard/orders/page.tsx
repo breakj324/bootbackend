@@ -34,7 +34,7 @@ export default function OrdersPage() {
         setSelectedPromoId(promosData[0].id);
       }
     } catch (err: any) {
-      setError('Impossible de charger les données. Vérifiez que le backend tourne sur le port 3001.');
+      setError('Impossible de charger les données. Vérifiez la connexion au serveur backend API.');
     } finally {
       setIsLoading(false);
     }

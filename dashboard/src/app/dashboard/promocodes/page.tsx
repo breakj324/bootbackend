@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Tag, Plus, CheckCircle, XCircle, Trash2, RefreshCw, AlertCircle, Upload, Image as ImageIcon } from 'lucide-react';
 import { api, PromoCodeItem } from '@/lib/api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://bootbackend.onrender.com';
 
 export default function PromoCodesPage() {
   const [promos, setPromos] = useState<PromoCodeItem[]>([]);
@@ -29,7 +29,7 @@ export default function PromoCodesPage() {
       const data = await api.getPromoCodes();
       setPromos(data);
     } catch (err: any) {
-      setError('Impossible de charger les codes promo. Vérifiez que le backend tourne sur le port 3001.');
+      setError(`Impossible de charger les codes promo. Vérifiez la connexion au backend API (${API_BASE_URL}).`);
     } finally {
       setIsLoading(false);
     }
