@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, CheckCircle, XCircle, ShieldCheck, Search, Filter, RefreshCw, AlertCircle, ImageIcon, X } from 'lucide-react';
+import { Users, CheckCircle, XCircle, ShieldCheck, Search, Filter, RefreshCw, AlertCircle, ImageIcon, X, Trash2 } from 'lucide-react';
 import { api, PlayerClaimItem } from '@/lib/api';
 
 function ClaimScreenshotCell({
@@ -199,6 +199,17 @@ export default function ClaimsPage() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Supprimer cette demande ? Le joueur recevra une notification Telegram pour recommencer.')) return;
+    try {
+      await api.deleteClaim(id);
+      setClaims(claims.filter(c => c.id !== id));
+      showSuccess('Demande supprimée. Le joueur a été notifié sur Telegram.');
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors de la suppression.');
+    }
+  };
+
   const filteredClaims = claims.filter(c => {
     const name = c.telegramName || '';
     const username = c.telegramUsername || '';
@@ -357,28 +368,37 @@ export default function ClaimsPage() {
                       </span>
                     </td>
                     <td>
-                      {claim.status === 'PENDING' ? (
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                        {claim.status === 'PENDING' && (
                           <button
                             className="btn-primary"
-                            style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', width: 'auto', background: 'var(--color-success)' }}
+                            style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem', width: 'auto', background: 'var(--color-success)' }}
                             onClick={() => handleUpdateStatus(claim.id, 'APPROVED')}
+                            title="Approuver"
                           >
-                            <CheckCircle size={14} />
+                            <CheckCircle size={13} />
                             <span>Approuver</span>
                           </button>
+                        )}
+                        {claim.status === 'PENDING' && (
                           <button
                             className="btn-icon"
                             style={{ borderColor: 'rgba(239,68,68,0.3)' }}
                             onClick={() => handleUpdateStatus(claim.id, 'REJECTED')}
-                            title="Rejeter"
+                            title="Rejeter (garde l'enregistrement)"
                           >
-                            <XCircle size={16} color="var(--color-danger)" />
+                            <XCircle size={15} color="var(--color-danger)" />
                           </button>
-                        </div>
-                      ) : (
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Traité</span>
-                      )}
+                        )}
+                        <button
+                          className="btn-icon"
+                          style={{ borderColor: 'rgba(239,68,68,0.5)', background: 'rgba(239,68,68,0.08)' }}
+                          onClick={() => handleDelete(claim.id)}
+                          title="Supprimer & notifier le joueur de recommencer"
+                        >
+                          <Trash2 size={15} color="#ef4444" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

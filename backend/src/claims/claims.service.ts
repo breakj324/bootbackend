@@ -123,4 +123,55 @@ export class ClaimsService {
 
     return updatedClaim;
   }
+
+  async deleteClaim(id: string) {
+    const claim = await this.prisma.playerClaim.findUnique({
+      where: { id },
+      include: { promoCode: true, order: true },
+    });
+
+    if (!claim) throw new Error('Demande introuvable');
+
+    // Delete the claim record
+    await this.prisma.playerClaim.delete({ where: { id } });
+
+    // Free up order quota
+    if (claim.order && claim.order.claimedCount > 0) {
+      await this.prisma.order.update({
+        where: { id: claim.orderId },
+        data: { claimedCount: { decrement: 1 } },
+      });
+    }
+
+    // Also reset player's conversation state so they can restart cleanly
+    await this.prisma.telegramConversationState.updateMany({
+      where: { telegramChatId: claim.telegramChatId },
+      data: { step: 'IDLE', currentOrderId: null, metadata: null },
+    });
+
+    // Notify player via Telegram
+    try {
+      const inline_keyboard = [
+        [
+          { text: '🔄 Recommencer / إعادة التسجيل', callback_data: `select_order_${claim.orderId}` },
+        ],
+        [
+          { text: '🎁 Voir les offres / مشاهدة العروض', callback_data: 'show_offers' },
+        ],
+      ];
+
+      await this.telegramService.sendMessage(
+        claim.telegramChatId,
+        `🗑️ <b>تم حذف طلبك / Demande supprimée</b>\n\n` +
+        `مرحباً ! تم حذف طلبك المتعلق بـ <b>${claim.promoCode.bookmaker}</b> (الكود برومو: <code>${claim.promoCode.code}</code>) من طرف المسؤول.\n\n` +
+        `✅ <b>يمكنك الآن إعادة التسجيل بمعرف Telegram جديد أو تصحيح معلوماتك.</b>\n` +
+        `اضغط على الزر أسفله لإعادة المحاولة :`,
+        { inline_keyboard },
+      );
+    } catch (err) {
+      console.error(`Could not notify player ${claim.telegramChatId}:`, err);
+    }
+
+    return { success: true, message: 'Demande supprimée avec succès' };
+  }
 }

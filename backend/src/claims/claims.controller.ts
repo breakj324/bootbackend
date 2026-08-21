@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Res } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Res } from '@nestjs/common';
 import { ClaimsService } from './claims.service';
 import { TelegramService } from '../telegram/telegram.service';
 import { Response } from 'express';
@@ -93,5 +93,10 @@ export class ClaimsController {
   @Patch(':id/status')
   async updateStatus(@Param('id') id: string, @Body() body: { status: 'APPROVED' | 'REJECTED' }) {
     return this.claimsService.updateStatus(id, body.status);
+  }
+
+  @Delete(':id')
+  async deleteClaim(@Param('id') id: string) {
+    return this.claimsService.deleteClaim(id);
   }
 }

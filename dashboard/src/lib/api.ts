@@ -117,4 +117,6 @@ export const api = {
   }) => apiFetch<PlayerClaimItem>('/claims', { method: 'POST', data }),
   updateClaimStatus: (id: string, status: 'APPROVED' | 'REJECTED') => 
     apiFetch<PlayerClaimItem>(`/claims/${id}/status`, { method: 'PATCH', data: { status } }),
+  deleteClaim: (id: string) =>
+    apiFetch(`/claims/${id}`, { method: 'DELETE' }),
 };
