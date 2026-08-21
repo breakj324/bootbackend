@@ -58,12 +58,21 @@ function ClaimScreenshotCell({
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://bootbackend.onrender.com';
   let fullUrl = url;
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    if (url.startsWith('AgA') || url.startsWith('AgC') || (!url.startsWith('/uploads/') && !url.startsWith('uploads/'))) {
-      const cleanId = url.replace(/^\//, '');
-      fullUrl = `${baseUrl}/claims/screenshot/${cleanId}`;
-    } else {
+    if (url.startsWith('AgA') || url.startsWith('AgC') || url.startsWith('AgB')) {
+      // Raw Telegram file_id → proxy via backend
+      fullUrl = `${baseUrl}/claims/screenshot/${url}`;
+    } else if (url.startsWith('/claims/screenshot/') || url.startsWith('claims/screenshot/')) {
+      // Already a /claims/screenshot/ path → just prepend baseUrl
       const cleanPath = url.startsWith('/') ? url : `/${url}`;
       fullUrl = `${baseUrl}${cleanPath}`;
+    } else if (url.startsWith('/uploads/') || url.startsWith('uploads/')) {
+      // Old format: /uploads/screenshots/... → send to AppController uploads handler
+      const cleanPath = url.startsWith('/') ? url : `/${url}`;
+      fullUrl = `${baseUrl}${cleanPath}`;
+    } else {
+      // Anything else: treat as a raw Telegram file_id or unknown path
+      const cleanId = url.replace(/^\//, '');
+      fullUrl = `${baseUrl}/claims/screenshot/${cleanId}`;
     }
   }
 
