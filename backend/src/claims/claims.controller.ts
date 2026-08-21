@@ -33,16 +33,30 @@ export class ClaimsController {
 
   @Get('screenshot/:fileId')
   async getScreenshot(@Param('fileId') fileId: string, @Res() res: Response) {
-    // 1. Check local file in uploads/screenshots/
     const diskPath = path.join(process.cwd(), 'uploads', 'screenshots', fileId);
     if (fs.existsSync(diskPath)) {
       return res.sendFile(diskPath);
     }
 
-    // 2. Fetch direct file URL from Telegram API
     const telegramFileUrl = await this.telegramService.getTelegramFileUrl(fileId);
     if (telegramFileUrl) {
-      return res.redirect(telegramFileUrl);
+      return res.redirect(302, telegramFileUrl);
+    }
+
+    return res.status(404).json({ message: 'Screenshot non disponible' });
+  }
+
+  @Get('screenshot/*')
+  async getScreenshotWildcard(@Res() res: Response, @Param('0') rawParam: string) {
+    const fileId = rawParam.replace(/^\//, '');
+    const diskPath = path.join(process.cwd(), 'uploads', 'screenshots', fileId);
+    if (fs.existsSync(diskPath)) {
+      return res.sendFile(diskPath);
+    }
+
+    const telegramFileUrl = await this.telegramService.getTelegramFileUrl(fileId);
+    if (telegramFileUrl) {
+      return res.redirect(302, telegramFileUrl);
     }
 
     return res.status(404).json({ message: 'Screenshot non disponible' });
