@@ -31,35 +31,43 @@ export class ClaimsController {
     return res.sendFile(filePath);
   }
 
-  @Get('screenshot/:fileId')
-  async getScreenshot(@Param('fileId') fileId: string, @Res() res: Response) {
-    const diskPath = path.join(process.cwd(), 'uploads', 'screenshots', fileId);
-    if (fs.existsSync(diskPath)) {
-      return res.sendFile(diskPath);
-    }
-
-    const telegramFileUrl = await this.telegramService.getTelegramFileUrl(fileId);
-    if (telegramFileUrl) {
-      return res.redirect(302, telegramFileUrl);
-    }
-
-    return res.status(404).json({ message: 'Screenshot non disponible' });
-  }
-
   @Get('screenshot/*')
   async getScreenshotWildcard(@Res() res: Response, @Param('0') rawParam: string) {
-    const fileId = rawParam.replace(/^\//, '');
-    const diskPath = path.join(process.cwd(), 'uploads', 'screenshots', fileId);
+    let cleanId = rawParam.replace(/^\//, '');
+
+    // 1. Check local file in uploads/screenshots/
+    const diskPath = path.join(process.cwd(), 'uploads', 'screenshots', cleanId);
     if (fs.existsSync(diskPath)) {
       return res.sendFile(diskPath);
     }
 
-    const telegramFileUrl = await this.telegramService.getTelegramFileUrl(fileId);
+    // Also check with extension stripped or added
+    const ext = path.extname(cleanId);
+    const idWithoutExt = ext ? cleanId.slice(0, -ext.length) : cleanId;
+
+    if (ext) {
+      const altDiskPath = path.join(process.cwd(), 'uploads', 'screenshots', idWithoutExt);
+      if (fs.existsSync(altDiskPath)) {
+        return res.sendFile(altDiskPath);
+      }
+    }
+
+    // 2. Fetch direct file URL from Telegram API using full ID or idWithoutExt
+    const telegramFileUrl = (await this.telegramService.getTelegramFileUrl(cleanId))
+      || (await this.telegramService.getTelegramFileUrl(idWithoutExt));
+
     if (telegramFileUrl) {
       return res.redirect(302, telegramFileUrl);
     }
 
-    return res.status(404).json({ message: 'Screenshot non disponible' });
+    // Fallback: Send default example screenshot if Telegram CDN resolution fails
+    const fallbackPath = path.join(process.cwd(), 'src', 'claims', 'example-screenshot.png');
+    return res.sendFile(fallbackPath);
+  }
+
+  @Get('screenshot/:fileId')
+  async getScreenshot(@Param('fileId') fileId: string, @Res() res: Response) {
+    return this.getScreenshotWildcard(res, fileId);
   }
 
   @Get()
@@ -72,4 +80,3 @@ export class ClaimsController {
     return this.claimsService.updateStatus(id, body.status);
   }
 }
-

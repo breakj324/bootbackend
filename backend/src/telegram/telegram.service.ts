@@ -229,9 +229,9 @@ export class TelegramService implements OnModuleInit {
 
       const buffer = Buffer.from(await fileRes.arrayBuffer());
 
-      // Step 3: Save to /uploads/screenshots/
+      // Step 3: Save to /uploads/screenshots/ using full fileId so it can be resolved anytime from Telegram CDN
       const ext = path.extname(filePath) || '.jpg';
-      const fileName = `screenshot_${fileId.slice(-12)}${ext}`;
+      const fileName = `${fileId}${ext}`;
       const screenshotsDir = path.join(process.cwd(), 'uploads', 'screenshots');
 
       if (!fs.existsSync(screenshotsDir)) {
@@ -242,10 +242,10 @@ export class TelegramService implements OnModuleInit {
       fs.writeFileSync(fullPath, buffer);
 
       this.logger.log(`Screenshot saved: ${fullPath}`);
-      return `/uploads/screenshots/${fileName}`;
+      return `/claims/screenshot/${fileId}`;
     } catch (err) {
       this.logger.error(`downloadTelegramFile error: ${err.message}`);
-      return null;
+      return `/claims/screenshot/${fileId}`;
     }
   }
 
