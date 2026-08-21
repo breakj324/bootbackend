@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Res, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Res } from '@nestjs/common';
 import { ClaimsService } from './claims.service';
 import { TelegramService } from '../telegram/telegram.service';
 import { Response } from 'express';
@@ -31,36 +31,51 @@ export class ClaimsController {
     return res.sendFile(filePath);
   }
 
+  // Wildcard route handles all screenshot file IDs (including those with special chars like - _ .)
   @Get('screenshot/*')
   async getScreenshotWildcard(@Res() res: Response, @Param('0') rawParam: string) {
-    let cleanId = rawParam.replace(/^\//, '');
+    const cleanId = rawParam.replace(/^\//, '');
 
-    // 1. Check local file in uploads/screenshots/
-    const diskPath = path.join(process.cwd(), 'uploads', 'screenshots', cleanId);
-    if (fs.existsSync(diskPath)) {
-      return res.sendFile(diskPath);
-    }
-
-    // Also check with extension stripped or added
+    // Strip extension to get pure Telegram file_id
     const ext = path.extname(cleanId);
-    const idWithoutExt = ext ? cleanId.slice(0, -ext.length) : cleanId;
+    const fileId = ext ? cleanId.slice(0, -ext.length) : cleanId;
 
-    if (ext) {
-      const altDiskPath = path.join(process.cwd(), 'uploads', 'screenshots', idWithoutExt);
-      if (fs.existsSync(altDiskPath)) {
-        return res.sendFile(altDiskPath);
+    // 1. Check local disk first (fast)
+    for (const candidate of [cleanId, fileId]) {
+      const diskPath = path.join(process.cwd(), 'uploads', 'screenshots', candidate);
+      if (fs.existsSync(diskPath)) {
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.sendFile(diskPath);
       }
     }
 
-    // 2. Fetch direct file URL from Telegram API using full ID or idWithoutExt
-    const telegramFileUrl = (await this.telegramService.getTelegramFileUrl(cleanId))
-      || (await this.telegramService.getTelegramFileUrl(idWithoutExt));
+    // 2. Proxy image directly from Telegram CDN (avoids browser CORS/referer blocks)
+    const telegramFileUrl = await this.telegramService.getTelegramFileUrl(fileId)
+      || await this.telegramService.getTelegramFileUrl(cleanId);
 
     if (telegramFileUrl) {
-      return res.redirect(302, telegramFileUrl);
+      try {
+        const response = await fetch(telegramFileUrl);
+        if (response.ok) {
+          const contentType = response.headers.get('content-type') || 'image/jpeg';
+          const buffer = Buffer.from(await response.arrayBuffer());
+
+          // Save to disk for future requests (cache)
+          try {
+            const screenshotsDir = path.join(process.cwd(), 'uploads', 'screenshots');
+            if (!fs.existsSync(screenshotsDir)) fs.mkdirSync(screenshotsDir, { recursive: true });
+            const fileExt = ext || '.jpg';
+            fs.writeFileSync(path.join(screenshotsDir, `${fileId}${fileExt}`), buffer);
+          } catch (_) {}
+
+          res.setHeader('Content-Type', contentType);
+          res.setHeader('Cache-Control', 'public, max-age=86400');
+          return res.send(buffer);
+        }
+      } catch (_) {}
     }
 
-    // Fallback: Send default example screenshot if Telegram CDN resolution fails
+    // 3. Final fallback: serve example screenshot
     const fallbackPath = path.join(process.cwd(), 'src', 'claims', 'example-screenshot.png');
     return res.sendFile(fallbackPath);
   }
