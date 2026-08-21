@@ -58,8 +58,13 @@ function ClaimScreenshotCell({
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://bootbackend.onrender.com';
   let fullUrl = url;
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    const cleanPath = url.startsWith('/') ? url : `/${url}`;
-    fullUrl = `${baseUrl}${cleanPath}`;
+    if (url.startsWith('AgA') || url.startsWith('AgC') || (!url.startsWith('/uploads/') && !url.startsWith('uploads/'))) {
+      const cleanId = url.replace(/^\//, '');
+      fullUrl = `${baseUrl}/claims/screenshot/${cleanId}`;
+    } else {
+      const cleanPath = url.startsWith('/') ? url : `/${url}`;
+      fullUrl = `${baseUrl}${cleanPath}`;
+    }
   }
 
   if (hasError) {

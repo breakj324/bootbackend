@@ -19,4 +19,14 @@ export class AppController {
     }
     throw new NotFoundException('File not found');
   }
+
+  @Get('AgA*')
+  async handleTelegramFileId(@Param('0') rest: string, @Res() res: Response) {
+    const fullId = `AgA${rest}`;
+    const telegramFileUrl = await this.telegramService.getTelegramFileUrl(fullId);
+    if (telegramFileUrl) {
+      return res.redirect(302, telegramFileUrl);
+    }
+    throw new NotFoundException('Screenshot Telegram non disponible');
+  }
 }
