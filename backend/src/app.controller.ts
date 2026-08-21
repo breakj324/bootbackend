@@ -6,15 +6,17 @@ import { Response } from 'express';
 export class AppController {
   constructor(private readonly telegramService: TelegramService) {}
 
-  @Get(':fileId')
-  async handleFileOrRoot(@Param('fileId') fileId: string, @Res() res: Response) {
-    // If it looks like a Telegram file ID (starts with AgAC, AgA, etc.)
-    if (fileId.startsWith('AgA') || fileId.length > 25) {
-      const telegramFileUrl = await this.telegramService.getTelegramFileUrl(fileId);
-      if (telegramFileUrl) {
-        return res.redirect(302, telegramFileUrl);
-      }
+  @Get('health')
+  getHealth() {
+    return { status: 'ok', timestamp: new Date().toISOString() };
+  }
+
+  @Get('file/:fileId')
+  async getTelegramFile(@Param('fileId') fileId: string, @Res() res: Response) {
+    const telegramFileUrl = await this.telegramService.getTelegramFileUrl(fileId);
+    if (telegramFileUrl) {
+      return res.redirect(302, telegramFileUrl);
     }
-    return res.status(404).json({ message: `Cannot GET /${fileId}`, error: 'Not Found', statusCode: 404 });
+    throw new NotFoundException('File not found');
   }
 }
