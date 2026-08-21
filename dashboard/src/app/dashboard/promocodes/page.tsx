@@ -290,9 +290,10 @@ export default function PromoCodesPage() {
                 id="promo-code-input"
                 type="text"
                 className="form-input"
-                placeholder="Exemple: atlass12"
+                placeholder="Exemple: ATLASS12"
                 value={newCode}
-                onChange={(e) => setNewCode(e.target.value)}
+                onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+                style={{ textTransform: 'uppercase' }}
                 required
               />
             </div>

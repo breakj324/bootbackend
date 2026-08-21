@@ -18,7 +18,7 @@ export class PromoCodesService {
 
   async create(data: { code: string; bookmaker: string; exampleImageUrl?: string }) {
     const existing = await this.prisma.promoCode.findUnique({
-      where: { code: data.code.trim().toLowerCase() },
+      where: { code: data.code.trim().toUpperCase() },
     });
 
     if (existing) {
@@ -27,7 +27,7 @@ export class PromoCodesService {
 
     return this.prisma.promoCode.create({
       data: {
-        code: data.code.trim().toLowerCase(),
+        code: data.code.trim().toUpperCase(),
         bookmaker: data.bookmaker.trim(),
         exampleImageUrl: data.exampleImageUrl?.trim() || null,
       },
