@@ -482,8 +482,10 @@ export default function ClaimsPage() {
             border: '1px solid rgba(239,68,68,0.35)',
             borderRadius: '16px',
             padding: '2rem',
-            width: '480px',
-            maxWidth: '92vw',
+            width: '580px',
+            maxWidth: '95vw',
+            maxHeight: '90vh',
+            overflowY: 'auto',
             boxShadow: '0 25px 60px rgba(0,0,0,0.6)',
           }}
         >
@@ -494,17 +496,64 @@ export default function ClaimsPage() {
             </h3>
           </div>
 
-          <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-            Le joueur recevra un message Telegram avec le motif de rejet et un bouton pour réessayer.
-          </p>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.6rem' }}>
+              ⚡ أسباب شائعة — اضغط لإضافة:
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+              {[
+                'السكرين شوت ما كيبيّنش الكود برومو',
+                'السكرين شوت ما كيبيّنش ID الحساب ديالك',
+                'الكود برومو اللي دخلتيه غلط',
+                'الحساب قديم، خاصو يكون جديد',
+                'العملة ماشي درهم مغربي (MAD)',
+                'السكرين شوت ما واضحش / مقروحة',
+                'اسم المستخدم فالصورة مختلف',
+                'الحساب مسجل بدون كود برومو',
+                'الصورة مش ديال موقع Melbet',
+                'الصورة ديال تسجيل ناقصة (ما كملتيهاش)',
+                'ID الحساب مكتوب غلط أو ناقص أرقام',
+                'الكود برومو ما تطبقش فالحساب',
+              ].map((reason) => {
+                const isSelected = rejectReason.includes(reason);
+                return (
+                  <button
+                    key={reason}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) {
+                        setRejectReason(prev => prev.replace(reason, '').replace(/\n\n/g, '\n').trim());
+                      } else {
+                        setRejectReason(prev => prev ? `${prev}\n${reason}` : reason);
+                      }
+                    }}
+                    style={{
+                      padding: '0.3rem 0.65rem',
+                      borderRadius: '999px',
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      border: isSelected ? '1px solid #ef4444' : '1px solid rgba(239,68,68,0.25)',
+                      background: isSelected ? 'rgba(239,68,68,0.18)' : 'rgba(239,68,68,0.06)',
+                      color: isSelected ? '#ef4444' : 'var(--text-secondary)',
+                      fontWeight: isSelected ? 700 : 400,
+                      transition: 'all 0.15s',
+                      direction: 'rtl',
+                    }}
+                  >
+                    {isSelected ? '✓ ' : ''}{reason}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.5rem' }}>
-            Motif de rejet (optionnel)
+            ✏️ Motif personnalisé (اختياري)
           </label>
           <textarea
             value={rejectReason}
             onChange={e => setRejectReason(e.target.value)}
-            placeholder="Ex: Le screenshot ne montre pas le code promo, l'ID bookmaker est invalide..."
+            placeholder="أو اكتب سبب مخصص هنا..."
             rows={3}
             style={{
               width: '100%',
@@ -518,8 +567,9 @@ export default function ClaimsPage() {
               marginBottom: '1.25rem',
               outline: 'none',
               boxSizing: 'border-box',
+              direction: 'rtl',
+              textAlign: 'right',
             }}
-            autoFocus
           />
 
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
